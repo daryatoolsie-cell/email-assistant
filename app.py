@@ -293,6 +293,11 @@ def save_syllabus():
 
 # ---------- Upcoming: exams & assignments ----------
 
+@app.get("/classes")
+def classes_page():
+    return render_template("classes.html", page="classes")
+
+
 @app.get("/upcoming")
 def upcoming_page():
     return render_template("upcoming.html", page="upcoming")

@@ -8,10 +8,6 @@ let items = [];
 let classes = [];
 const openEdits = new Set(); // items whose edit form is open
 
-function localToday() {
-  const d = new Date();
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-}
 function daysUntil(dateStr) {
   return Math.round((new Date(dateStr) - new Date(localToday())) / 86400000);
 }

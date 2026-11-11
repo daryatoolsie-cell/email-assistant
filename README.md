@@ -7,6 +7,7 @@ A personal web app that drafts emails for you with Claude. It runs on your own M
 - ✅ Phase 2: Settings page (name, school, sign-off, signature) and Regenerate / Make Shorter / Make More Formal / Make More Casual
 - ✅ Phase 3: Work Inbox: reads unread Gmail and saves AI-written replies as **Gmail drafts** (never sends)
 - ✅ Syllabus upload: auto-fills professors, office hours, exams (with topics) and assignments
+- ✅ Classes page: each class's syllabus info in a tidy card
 - ✅ Upcoming page: all exams & assignments, countdowns, check-offs, study checklists, one-click emails
 - ✅ Themes: 8 built-in themes (including Weed 🌿 with stickers) plus your own (Settings → Appearance)
 - ✅ Downloadable Mac app that friends can install from a GitHub release page (see "Mac app & sharing")
@@ -198,7 +199,9 @@ Claude reads it (30–90 seconds, about 10–20¢) and fills in a **review scree
 
 Check everything, then click **Save**. Items marked **⚠️ needs a date** had no exact date in the syllabus (e.g. "Week 12"). Add the date if you know it. Untick **Keep** to skip an item, or use **+ Add an item**.
 
-Nothing is saved until you click Save. Uploading a newer syllabus for the same class (same professor email or course) updates it and replaces its syllabus items. When you pick a professor, **📚 Class info & upcoming** shows everything from their syllabus.
+Nothing is saved until you click Save. Uploading a newer syllabus for the same class (same professor email or course) updates it and replaces its syllabus items.
+
+The **Classes** page shows one card per class: office hours, class times, location and TAs at a glance, **Grading** and **Policies** folded away until you click them, and a compact list of upcoming exams and assignments (click one for what's on it). You can also add or update a syllabus from there.
 
 ---
 

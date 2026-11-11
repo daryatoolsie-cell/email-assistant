@@ -67,3 +67,14 @@ function setupFilePicker(input, onFile) {
     if (file) onFile(file);
   });
 }
+
+// Labels for exam/assignment types (Professors, Classes and syllabus review).
+const KIND_LABELS = {
+  exam: "📝 Exam", quiz: "✏️ Quiz", assignment: "📄 Assignment",
+  project: "🧩 Project", presentation: "🎤 Presentation", other: "📌 Other",
+};
+
+function localToday() {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}

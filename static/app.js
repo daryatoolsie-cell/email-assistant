@@ -78,8 +78,30 @@ function selectProfessor(id) {
   $("#status").className = "muted";
   document.querySelectorAll(".type-btn").forEach((b) => b.classList.remove("active"));
   $("#draft-panel").scrollIntoView({ behavior: "smooth" });
-  return typeof showClassInfo === "function" ? showClassInfo(selected) : Promise.resolve();
+  return loadAboutPicker(selected);
 }
+
+// "About" menu (which assignment/exam an email is about) + a link to the class's info.
+async function loadAboutPicker(prof) {
+  $("#about-wrap").classList.add("hidden");
+  $("#about-item").innerHTML = "";
+  $("#class-link").classList.toggle("hidden", !prof.item_count);
+  $("#class-link").innerHTML = `📚 Office hours, exams &amp; syllabus info: <a href="/classes#class-${prof.id}">see ${esc(prof.course)} on the Classes page →</a>`;
+  if (!prof.item_count) return;
+  const today = localToday();
+  const items = (await api("GET", `/api/professors/${prof.id}/items`))
+    .filter((it) => !it.done && (!it.due_date || it.due_date >= today));
+  if (!items.length) return;
+  $("#about-item").innerHTML = `<option value="">Nothing specific</option>` + items.map((it) =>
+    `<option value="${it.id}">${KIND_LABELS[it.kind] || ""} ${esc(it.title)}${it.due_date ? " · " + esc(it.due_date) : ""}</option>`).join("");
+  $("#about-wrap").classList.remove("hidden");
+}
+
+// After "Add from syllabus" → Save: show the new/updated professor.
+window.afterSyllabusSaved = async (id) => {
+  await loadProfessors();
+  await selectProfessor(id);
+};
 
 // ---------- drafting ----------
 document.querySelectorAll(".type-btn").forEach((btn) => {

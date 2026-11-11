@@ -1,11 +1,10 @@
 // "Add from syllabus": upload → Claude reads it → you review and fix → save.
-// Also shows the "Class info & upcoming" section when you pick a professor.
+// Used on the Professors and Classes pages. After saving, it calls window.afterSyllabusSaved(id)
+// if the page defines one.
 
-const KIND_LABELS = {
-  exam: "📝 Exam", quiz: "✏️ Quiz", assignment: "📄 Assignment",
-  project: "🧩 Project", presentation: "🎤 Presentation", other: "📌 Other",
-};
+
 let srItems = []; // items being reviewed (keeps study checklists that aren't shown as inputs)
+let srProfs = []; // existing professors, for "Save to"
 
 // ---------- Step 1: upload ----------
 $("#syllabus-btn").onclick = () => $("#syllabus-file").click();
@@ -23,7 +22,7 @@ async function readSyllabus(file) {
     form.append("file", file);
     const r = await api("POST", "/api/syllabus/read", form);
     status.classList.add("hidden");
-    openReview(r);
+    await openReview(r);
   } catch (err) {
     status.className = "error";
     status.textContent = err.message;
@@ -33,16 +32,17 @@ async function readSyllabus(file) {
 }
 
 // ---------- Step 2: review ----------
-function openReview({ extracted: x, match_id, filename }) {
+async function openReview({ extracted: x, match_id, filename }) {
+  srProfs = await api("GET", "/api/professors");
   $("#sr-filename").textContent = filename || "syllabus";
   $("#sr-target").innerHTML = `<option value="">➕ New professor</option>` +
-    professors.map((p) => `<option value="${p.id}">Update: ${esc(p.name)} (${esc(p.course)})</option>`).join("");
+    srProfs.map((p) => `<option value="${p.id}">Update: ${esc(p.name)} (${esc(p.course)})</option>`).join("");
   $("#sr-target").value = match_id ? String(match_id) : "";
 
   $("#sr-name").value = x.professor_name;
   $("#sr-email").value = x.professor_email;
   $("#sr-course").value = x.course;
-  const existing = professors.find((p) => p.id === match_id);
+  const existing = srProfs.find((p) => p.id === match_id);
   $("#sr-notes").value = existing ? existing.notes : "";
   for (const k of ["office_hours", "class_times", "course_title", "term", "location", "teaching_assistants", "grading", "policies"]) {
     $(`#sr-${k}`).value = x[k] || "";
@@ -104,7 +104,7 @@ $("#sr-add-item").onclick = () => {
 };
 
 $("#sr-target").onchange = (e) => {
-  const p = professors.find((x) => String(x.id) === e.target.value);
+  const p = srProfs.find((x) => String(x.id) === e.target.value);
   if (p && !$("#sr-notes").value) $("#sr-notes").value = p.notes;
 };
 
@@ -123,7 +123,7 @@ $("#sr-save").onclick = async () => {
     items: srItems.filter((it) => it.include && it.title.trim()),
   };
   if (body.professor_id) {
-    const p = professors.find((x) => x.id === body.professor_id);
+    const p = srProfs.find((x) => x.id === body.professor_id);
     if (!confirm(`Update ${p.name} (${p.course})? Their syllabus items will be replaced with these.`)) return;
   }
   const btn = $("#sr-save");
@@ -132,9 +132,7 @@ $("#sr-save").onclick = async () => {
     const r = await api("POST", "/api/syllabus/save", body);
     $("#syllabus-review").classList.add("hidden");
     toast(`Saved ${r.items_saved} exams & assignments`);
-    await loadProfessors();
-    selectProfessor(r.professor_id);
-    $("#class-info").open = true;
+    if (window.afterSyllabusSaved) await window.afterSyllabusSaved(r.professor_id);
   } catch (err) {
     $("#sr-error").textContent = err.message;
     $("#sr-error").classList.remove("hidden");
@@ -142,55 +140,3 @@ $("#sr-save").onclick = async () => {
     btn.disabled = false;
   }
 };
-
-// ---------- Class info when a professor is selected ----------
-function localToday() {
-  const d = new Date();
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-}
-
-function formatDue(it) {
-  if (!it.due_date) return it.date_text ? `“${esc(it.date_text)}”` : "No date";
-  const d = new Date(`${it.due_date}T${it.due_time || "00:00"}`);
-  const day = d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
-  const time = it.due_time ? " " + d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
-  const days = Math.round((new Date(it.due_date) - new Date(localToday())) / 86400000);
-  const when = days < 0 ? "past" : days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
-  return `${day}${time} <span class="muted">(${when})</span>`;
-}
-
-async function showClassInfo(prof) {
-  const box = $("#class-info");
-  const info = prof.course_info || {};
-  $("#about-wrap").classList.add("hidden");
-  $("#about-item").innerHTML = "";
-  if (!prof.item_count && !prof.office_hours && !Object.values(info).some(Boolean)) {
-    box.classList.add("hidden");
-    return;
-  }
-  const items = await api("GET", `/api/professors/${prof.id}/items`);
-  const today = localToday();
-  const upcoming = items.filter((it) => !it.done && (!it.due_date || it.due_date >= today));
-
-  // "About" picker for the email buttons
-  if (upcoming.length) {
-    $("#about-item").innerHTML = `<option value="">Nothing specific</option>` + upcoming.map((it) =>
-      `<option value="${it.id}">${KIND_LABELS[it.kind] || ""} ${esc(it.title)}${it.due_date ? " · " + esc(it.due_date) : ""}</option>`).join("");
-    $("#about-wrap").classList.remove("hidden");
-  }
-  const facts = [
-    ["Office hours", prof.office_hours], ["Class", info.class_times], ["Where", info.location],
-    ["TAs", info.teaching_assistants], ["Grading", info.grading], ["Policies", info.policies],
-  ].filter(([, v]) => v);
-  $("#class-info-body").innerHTML = `
-    ${facts.map(([k, v]) => `<div class="fact"><strong>${k}:</strong> ${esc(v)}</div>`).join("")}
-    <div class="ci-items">
-      ${upcoming.map((it) => `
-        <div class="ci-item">
-          <div><span class="chip">${KIND_LABELS[it.kind] || it.kind}</span> <strong>${esc(it.title)}</strong></div>
-          <div class="small">${formatDue(it)}</div>
-          ${it.topics ? `<div class="muted small">${esc(it.topics)}</div>` : ""}
-        </div>`).join("") || `<p class="muted small">Nothing upcoming.</p>`}
-    </div>`;
-  box.classList.remove("hidden");
-}

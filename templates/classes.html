@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Classes</h2>
+        <button id="syllabus-btn">📄 Add from syllabus</button>
+      </div>
+      <p class="muted small" style="margin:0">Everything from your syllabi: office hours, grading, policies, exams and assignments.</p>
+      <input type="file" id="syllabus-file" class="hidden">
+      <p id="syllabus-status" class="muted hidden"></p>
+    </section>
+
+    {% include "_syllabus_review.html" %}
+
+    <div id="class-list"></div>
+    <p id="classes-empty" class="panel muted hidden">
+      No classes yet. Click <strong>📄 Add from syllabus</strong> and choose a syllabus PDF or Word file.
+    </p>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='syllabus.js') }}"></script>
+<script src="{{ url_for('static', filename='classes.js') }}"></script>
+{% endblock %}
