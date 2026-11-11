@@ -1,0 +1,16 @@
+.env
+.venv/
+__pycache__/
+data.db
+# Phase 3 (Gmail) secrets:
+credentials.json
+token.json
+config.json
+app.log
+# Build output
+build/
+dist/
+packaging/icon.icns
+packaging/icon.iconset/
+packaging/google_client.json
+packaging/icon.png

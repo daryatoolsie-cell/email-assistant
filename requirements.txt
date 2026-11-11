@@ -1,0 +1,7 @@
+flask>=3.0
+python-dotenv>=1.0
+anthropic>=2.8
+# Phase 3 (Gmail)
+google-api-python-client>=2.0
+google-auth-oauthlib>=1.2
+google-auth-httplib2>=0.2

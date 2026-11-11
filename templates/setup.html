@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+    <section class="panel">
+      <h2>👋 Welcome to Email Assistant</h2>
+      <p>This app writes your emails with Claude. To use it, you need your own <strong>Claude API key</strong>.
+        It's like a password that lets the app use Claude, and you pay Anthropic directly for what you use
+        (about 1¢ per email).</p>
+
+      <ol>
+        <li>Go to <a href="#" class="ext" data-href="https://console.anthropic.com">console.anthropic.com</a>
+          and sign up or log in.</li>
+        <li>Under <strong>Billing</strong>, add a little credit ($5 lasts a long time).</li>
+        <li>Open <strong>API Keys</strong>, click <strong>Create Key</strong>, and choose
+          <strong>Continue with an API key</strong> if it asks about identity federation.</li>
+        <li>Copy the key (it starts with <code>sk-ant-</code>) and paste it below.</li>
+      </ol>
+
+      <form id="key-form">
+        <label>Claude API key
+          <input name="key" type="password" placeholder="sk-ant-..." autocomplete="off" required>
+        </label>
+        <p class="muted small">Your key is stored only on this Mac, in a file only your account can read.
+          It's sent only to Anthropic.</p>
+        <p id="key-error" class="error hidden"></p>
+        <div class="row">
+          <button type="submit" id="key-save">Save and continue</button>
+        </div>
+      </form>
+    </section>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.querySelectorAll("a.ext").forEach((a) => {
+    a.onclick = (e) => { e.preventDefault(); openExternal(a.dataset.href); };
+  });
+  const form = $("#key-form");
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = $("#key-save");
+    btn.disabled = true;
+    btn.textContent = "Checking your key…";
+    $("#key-error").classList.add("hidden");
+    try {
+      await api("PUT", "/api/apikey", { key: form.elements.key.value });
+      window.location.href = "/settings?welcome=1";
+    } catch (err) {
+      $("#key-error").textContent = err.message;
+      $("#key-error").classList.remove("hidden");
+      btn.disabled = false;
+      btn.textContent = "Save and continue";
+    }
+  };
+</script>
+{% endblock %}

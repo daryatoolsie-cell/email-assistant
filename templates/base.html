@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en" data-stickers="{{ theme_stickers }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="app-token" content="{{ app_token }}">
+  <title>Email Assistant</title>
+  <style id="theme-vars">{{ theme_css | safe }}</style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  {% include "stickers.html" %}
+  <header>
+    <h1>✉️ Email Assistant</h1>
+    {% if page != 'setup' %}<nav>
+      <a href="/" class="{{ 'active' if page == 'professors' }}">Professors</a>
+      <a href="/work" class="{{ 'active' if page == 'work' }}">Work Inbox</a>
+      <a href="/settings" class="{{ 'active' if page == 'settings' }}">Settings</a>
+    </nav>{% endif %}
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="{{ url_for('static', filename='common.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

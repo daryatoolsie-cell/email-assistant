@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+    <!-- Gmail connection -->
+    <section class="panel">
+      <div class="connect-row">
+        <div>
+          <h2>Gmail</h2>
+          <p id="gmail-status" class="muted" style="margin:0">Checking connection…</p>
+        </div>
+        <div class="row" style="margin:0">
+          <button id="btn-connect" class="hidden">Connect Gmail</button>
+          <button id="btn-check" class="hidden">📥 Check inbox</button>
+          <button id="btn-disconnect" class="secondary hidden">Disconnect</button>
+        </div>
+      </div>
+      <p id="check-summary" class="summary muted hidden"></p>
+      <div id="creds-upload" class="hidden">
+        <label>Choose your Google credentials file (the .json you downloaded from Google Cloud)
+          <input type="file" id="creds-file" accept=".json,application/json">
+        </label>
+      </div>
+    </section>
+
+    <!-- Emails -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Replies to review</h2>
+        <label class="toggle"><input type="checkbox" id="show-done"> Show done</label>
+      </div>
+      <p class="muted small" style="margin:0">
+        Replies are saved as <strong>drafts in Gmail</strong>. Nothing is ever sent automatically.
+        Review a draft here or in Gmail, then send it yourself from Gmail.
+      </p>
+      <div id="emails"></div>
+      <p id="emails-empty" class="muted hidden">Nothing here yet. Click “📥 Check inbox” to look for new unread emails.</p>
+    </section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='work.js') }}"></script>{% endblock %}

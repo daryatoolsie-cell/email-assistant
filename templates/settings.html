@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block content %}
+    <p class="banner hidden" id="welcome">✅ Your key works! Now add your name and sign-off below, then click <strong>Save settings</strong>.</p>
+
+    <section class="panel" id="appearance">
+      <div class="panel-head">
+        <h2>Appearance</h2>
+      </div>
+      <p class="muted small" style="margin:0">Click a theme to use it. Make your own with “+ New theme”.</p>
+      <div id="theme-grid" class="theme-grid"></div>
+
+      <form id="theme-builder" class="hidden">
+        <h2 class="spaced" id="builder-title">New theme</h2>
+        <div class="grid">
+          <label>Theme name <input name="name" maxlength="40" placeholder="My theme" required></label>
+          <label>Start from
+            <select name="start" id="start-from"></select>
+          </label>
+          <label>Stickers
+            <select name="stickers" id="sticker-select"></select>
+          </label>
+        </div>
+        <div class="color-grid" id="color-inputs"></div>
+        <p id="contrast-warning" class="error small hidden"></p>
+        <p class="muted small">The whole app previews your colors while you edit.</p>
+        <div class="row">
+          <button type="submit">Save theme</button>
+          <button type="button" class="secondary" id="builder-cancel">Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Claude API key</h2>
+      <p class="muted small" style="margin:0" id="key-status">Checking…</p>
+      <form id="change-key" class="hidden">
+        <label>New key <input name="key" type="password" placeholder="sk-ant-..." autocomplete="off" required></label>
+        <div class="row">
+          <button type="submit">Save key</button>
+          <button type="button" class="secondary" id="change-key-cancel">Cancel</button>
+        </div>
+      </form>
+      <div class="row" id="change-key-row"><button type="button" class="secondary" id="change-key-btn">Change key</button></div>
+    </section>
+
+    <form id="settings-form" class="panel">
+      <h2>About you</h2>
+      <div class="grid">
+        <label>Your name <input name="name" placeholder="Alex Rivera"></label>
+        <label>School <input name="school" placeholder="State University"></label>
+      </div>
+
+      <h2 class="spaced">Signature</h2>
+      <p class="muted small">Added to the end of every email, exactly as written here.</p>
+      <div class="grid">
+        <label>Sign-off <input name="sign_off" placeholder="Thanks,"></label>
+        <label>Extra lines under your name (optional)
+          <textarea name="signature" rows="2" placeholder="Marketing major, Class of 2028"></textarea>
+        </label>
+      </div>
+
+      <label>Preview
+        <pre id="sig-preview" class="preview"></pre>
+      </label>
+
+      <h2 class="spaced">Work emails (Gmail)</h2>
+      <label>Work context
+        <textarea name="work_context" rows="3"
+          placeholder="e.g. I'm a part-time marketing assistant at Acme Co. I report to Sam. Keep replies short and friendly."></textarea>
+      </label>
+      <div class="grid">
+        <label>Work signature (optional)
+          <textarea name="work_signature" rows="3" placeholder="Best,&#10;Alex Rivera&#10;Marketing Assistant, Acme Co."></textarea>
+          <span class="hint">Leave blank to use your sign-off and name from above.</span>
+        </label>
+        <div>
+          <label>Gmail label to check
+            <input name="gmail_label" placeholder="Inbox">
+            <span class="hint">Leave blank for your Inbox, or type a label name exactly as in Gmail (e.g. Work).</span>
+          </label>
+          <label>Emails per check
+            <input name="max_emails" type="number" min="1" max="50">
+            <span class="hint">The most new emails handled per “Check inbox” click.</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="row">
+        <button type="submit">Save settings</button>
+      </div>
+    </form>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='themes.js') }}"></script>
+<script>
+  const form = document.querySelector("#settings-form");
+
+  function updatePreview() {
+    const f = form.elements;
+    const lines = [f.sign_off.value, f.name.value || "[Your Name]", f.signature.value];
+    document.querySelector("#sig-preview").textContent = lines.filter((l) => l.trim()).join("\n");
+  }
+
+  (async () => {
+    const s = await api("GET", "/api/settings");
+    for (const [k, v] of Object.entries(s)) if (form.elements[k]) form.elements[k].value = v;
+    updatePreview();
+  })();
+
+  form.oninput = updatePreview;
+
+  if (new URLSearchParams(location.search).has("welcome")) {
+    $("#welcome").classList.remove("hidden");
+    form.scrollIntoView();
+    form.elements.name.focus();
+  }
+
+  // --- API key ---
+  const keyForm = $("#change-key");
+  async function loadKey() {
+    const k = await api("GET", "/api/apikey");
+    $("#key-status").textContent = k.has_key
+      ? `Saved (ends in ${k.hint}).` + (k.from_env ? " Loaded from your .env file." : "")
+      : "No key yet.";
+  }
+  $("#change-key-btn").onclick = () => {
+    keyForm.classList.remove("hidden");
+    $("#change-key-row").classList.add("hidden");
+    keyForm.elements.key.focus();
+  };
+  $("#change-key-cancel").onclick = () => {
+    keyForm.reset();
+    keyForm.classList.add("hidden");
+    $("#change-key-row").classList.remove("hidden");
+  };
+  keyForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = keyForm.querySelector("button[type=submit]");
+    btn.disabled = true;
+    btn.textContent = "Checking…";
+    try {
+      const r = await api("PUT", "/api/apikey", { key: keyForm.elements.key.value });
+      toast(r.from_env ? "Saved. Note: your .env key is still used while it's set." : "Key saved");
+      $("#change-key-cancel").click();
+      loadKey();
+    } catch (err) { alert(err.message); }
+    btn.disabled = false;
+    btn.textContent = "Save key";
+  };
+  loadKey();
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api("PUT", "/api/settings", Object.fromEntries(new FormData(form)));
+      toast("Settings saved");
+    } catch (err) { alert(err.message); }
+  };
+</script>
+{% endblock %}

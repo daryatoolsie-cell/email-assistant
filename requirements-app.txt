@@ -1,0 +1,4 @@
+# Extra packages for running in a window (python desktop.py) and for building the Mac app.
+pywebview==6.1
+pyinstaller==6.21.0
+pillow>=10.0

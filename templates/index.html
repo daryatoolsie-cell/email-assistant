@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+    {% if needs_setup %}
+    <p class="banner">👋 Add your name and sign-off in <a href="/settings">Settings</a> so your emails are signed correctly.</p>
+    {% endif %}
+
+    <!-- Professors -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Your professors</h2>
+        <button id="show-add" class="secondary">+ Add professor</button>
+      </div>
+
+      <form id="prof-form" class="hidden">
+        <input type="hidden" name="id">
+        <div class="grid">
+          <label>Name <input name="name" placeholder="Dr. Jane Smith" required></label>
+          <label>Email <input name="email" type="email" placeholder="jsmith@school.edu" required></label>
+          <label>Course <input name="course" placeholder="Marketing 201" required></label>
+          <label>Notes (optional) <input name="notes" placeholder="Prefers to be called Dr. Smith"></label>
+        </div>
+        <div class="row">
+          <button type="submit" id="prof-save">Save</button>
+          <button type="button" id="prof-cancel" class="secondary">Cancel</button>
+        </div>
+      </form>
+
+      <div id="prof-list" class="cards"></div>
+      <p id="prof-empty" class="muted hidden">No professors yet. Click “+ Add professor” to get started.</p>
+    </section>
+
+    <!-- Drafting -->
+    <section class="panel hidden" id="draft-panel">
+      <h2 id="draft-title"></h2>
+
+      <div class="type-buttons">
+        {% for key, label in button_labels.items() %}
+        <button class="type-btn" data-type="{{ key }}">{{ label }}</button>
+        {% endfor %}
+      </div>
+
+      <label>Extra details (optional, required for Custom)
+        <textarea id="details" rows="2" placeholder="e.g. I have a doctor's note / the case study due Friday"></textarea>
+      </label>
+
+      <p id="status" class="muted"></p>
+
+      <div id="draft-output" class="hidden">
+        <label>To <input id="out-to" readonly></label>
+        <label>Subject <input id="out-subject"></label>
+        <label>Body <textarea id="out-body" rows="12"></textarea></label>
+        <div class="row tweak-buttons">
+          <button class="secondary" id="btn-regenerate">🔄 Regenerate</button>
+          <button class="secondary" data-style="shorter">✂️ Make Shorter</button>
+          <button class="secondary" data-style="formal">🎓 Make More Formal</button>
+          <button class="secondary" data-style="casual">😊 Make More Casual</button>
+        </div>
+        <div class="row">
+          <button id="btn-copy">📋 Copy</button>
+          <button id="btn-outlook" class="secondary">Open in Outlook</button>
+          <button id="btn-mailapp" class="secondary">Open in Mail app</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- History -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>History</h2>
+      </div>
+      <div id="history"></div>
+      <p id="history-empty" class="muted hidden">Drafts you generate will show up here.</p>
+    </section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='app.js') }}"></script>{% endblock %}
