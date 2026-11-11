@@ -190,7 +190,7 @@ Good to know:
 
 ## Add a class from its syllabus
 
-On **Professors**, click **📄 Add from syllabus** and choose the syllabus PDF (download it from Brightspace first), or a photo/screenshot of it. Word files: open them and use **File → Save as PDF**.
+On **Professors**, click **📄 Add from syllabus** and choose the syllabus: a **PDF**, a **Word file (.docx)**, or a **photo/screenshot** (JPG/PNG). Download it from Brightspace first. For Pages files, use **File → Export To → PDF** in Pages.
 
 Claude reads it (30–90 seconds, about 10–20¢) and fills in a **review screen**:
 - the professor's name, email and course, plus office hours, class times, TAs, grading and key policies,

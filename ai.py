@@ -386,7 +386,10 @@ def read_syllabus(file_bytes: bytes, media_type: str, today: str) -> dict:
     import base64
 
     data = base64.standard_b64encode(file_bytes).decode("ascii")
-    if media_type == "application/pdf":
+    if media_type == "text/plain":  # Word documents (converted to text) and .txt files
+        doc = {"type": "document", "source": {"type": "text", "media_type": "text/plain",
+                                              "data": file_bytes.decode("utf-8", errors="replace")}}
+    elif media_type == "application/pdf":
         doc = {"type": "document", "source": {"type": "base64", "media_type": media_type, "data": data}}
     else:
         doc = {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": data}}

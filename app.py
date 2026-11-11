@@ -179,6 +179,31 @@ TIME_RE = re.compile(r"^(\d{2}:\d{2})?$")
 INFO_FIELDS = ("course_title", "term", "class_times", "location", "teaching_assistants", "grading", "policies")
 
 
+def _docx_text(content: bytes) -> str:
+    """Pull the text out of a Word (.docx) file, keeping tables as "cell | cell" rows."""
+    import io
+    import zipfile
+    from xml.etree import ElementTree
+
+    w = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    with zipfile.ZipFile(io.BytesIO(content)) as z:
+        root = ElementTree.fromstring(z.read("word/document.xml"))
+
+    def para_text(p):
+        return "".join(t.text or "" for t in p.iter(f"{w}t")).strip()
+
+    lines = []
+    body = root.find(f"{w}body")
+    for block in body:
+        if block.tag == f"{w}p":
+            lines.append(para_text(block))
+        elif block.tag == f"{w}tbl":
+            for tr in block.iter(f"{w}tr"):
+                cells = [" ".join(filter(None, (para_text(p) for p in tc.iter(f"{w}p")))) for tc in tr.iter(f"{w}tc")]
+                lines.append(" | ".join(cells))
+    return "\n".join(lines).strip()
+
+
 @app.post("/api/syllabus/read")
 def read_syllabus():
     """Step 1: Claude reads the file. Nothing is saved until you review it."""
@@ -186,10 +211,27 @@ def read_syllabus():
     if not upload:
         return jsonify(error="Choose a syllabus file (PDF, or a photo/screenshot)."), 400
     content = upload.read()
+    name = (upload.filename or "").lower()
     media_type = next((t for magic, t in SYLLABUS_TYPES.items() if content.startswith(magic)), None)
+    if not media_type and content.startswith(b"PK") and name.endswith(".docx"):
+        try:
+            content, media_type = _docx_text(content).encode("utf-8"), "text/plain"
+        except Exception:  # noqa: BLE001
+            return jsonify(error="Couldn't open that Word file. In Word, choose File → Save as PDF and upload the PDF."), 400
+    elif not media_type and name.endswith((".txt", ".md")):
+        media_type = "text/plain"
     if not media_type:
-        return jsonify(error="That file type isn't supported. Use a PDF, or a PNG/JPG photo of the syllabus. "
-                             "(For a Word file: open it and choose File → Save as PDF.)"), 400
+        hint = ""
+        if name.endswith(".doc"):
+            hint = " Older .doc files: open it in Word and choose File → Save As → .docx or PDF."
+        elif name.endswith(".pages"):
+            hint = " Pages files: open it in Pages and choose File → Export To → PDF."
+        elif name.endswith((".heic", ".webp")):
+            hint = " For photos: open it in Preview and choose File → Export → JPEG."
+        return jsonify(error="That file type isn't supported. Use a PDF, Word (.docx), or a JPG/PNG photo of the "
+                             "syllabus." + hint), 400
+    if media_type == "text/plain" and not content.strip():
+        return jsonify(error="That file looks empty."), 400
     try:
         extracted = ai.read_syllabus(content, media_type, date.today().isoformat())
     except ai.DraftError as e:
