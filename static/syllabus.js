@@ -10,10 +10,9 @@ let srItems = []; // items being reviewed (keeps study checklists that aren't sh
 // ---------- Step 1: upload ----------
 $("#syllabus-btn").onclick = () => $("#syllabus-file").click();
 
-$("#syllabus-file").onchange = async (e) => {
-  const file = e.target.files[0];
-  e.target.value = "";
-  if (!file) return;
+setupFilePicker($("#syllabus-file"), readSyllabus);
+
+async function readSyllabus(file) {
   const status = $("#syllabus-status");
   const btn = $("#syllabus-btn");
   status.className = "muted";
@@ -31,7 +30,7 @@ $("#syllabus-file").onchange = async (e) => {
   } finally {
     btn.disabled = false;
   }
-};
+}
 
 // ---------- Step 2: review ----------
 function openReview({ extracted: x, match_id, filename }) {

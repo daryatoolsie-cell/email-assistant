@@ -29,9 +29,9 @@ async function loadStatus() {
   return s;
 }
 
-$("#creds-file").onchange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+setupFilePicker($("#creds-file"), uploadCredentials);
+
+async function uploadCredentials(file) {
   const form = new FormData();
   form.append("file", file);
   try {
@@ -40,9 +40,8 @@ $("#creds-file").onchange = async (e) => {
   } catch (err) {
     alert(err.message);
   }
-  e.target.value = "";
   loadStatus();
-};
+}
 
 $("#btn-connect").onclick = async () => {
   const btn = $("#btn-connect");

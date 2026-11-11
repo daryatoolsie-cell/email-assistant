@@ -49,6 +49,25 @@ class Bridge:
             webbrowser.open(url)
         return True
 
+    def pick_file(self):
+        """Opens Finder to choose a file and returns {name, data (base64)}.
+
+        Used instead of the web page's own file picker, which in the window toolkit can grey out
+        every file type except JPG on macOS.
+        """
+        import base64
+        from pathlib import Path
+
+        import webview
+
+        paths = webview.windows[0].create_file_dialog(webview.FileDialog.OPEN)
+        if not paths:
+            return None
+        path = Path(paths[0])
+        if path.stat().st_size > 32 * 1024 * 1024:
+            return {"error": "That file is too big (over 32 MB)."}
+        return {"name": path.name, "data": base64.b64encode(path.read_bytes()).decode("ascii")}
+
     def copy_text(self, text):
         if sys.platform == "darwin":
             subprocess.run(["pbcopy"], input=text.encode("utf-8"), check=False)

@@ -43,3 +43,27 @@ async function copyText(text) {
     else throw err;
   }
 }
+
+// File pickers: inside the Mac app, open Finder through the app (window.pywebview.api.pick_file),
+// because the window's built-in picker can grey out files. In a browser, the normal picker is used.
+// Call once per <input type="file">; onFile(file) gets the chosen File either way.
+function setupFilePicker(input, onFile) {
+  input.addEventListener("click", async (e) => {
+    if (!window.pywebview?.api?.pick_file) return; // browser: let the normal picker open
+    e.preventDefault();
+    try {
+      const r = await window.pywebview.api.pick_file();
+      if (!r) return; // cancelled
+      if (r.error) throw new Error(r.error);
+      const bytes = Uint8Array.from(atob(r.data), (c) => c.charCodeAt(0));
+      onFile(new File([bytes], r.name));
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
+  input.addEventListener("change", () => {
+    const file = input.files[0];
+    input.value = "";
+    if (file) onFile(file);
+  });
+}
