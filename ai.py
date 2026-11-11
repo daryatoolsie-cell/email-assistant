@@ -177,8 +177,25 @@ def _call_claude(system: str, user_prompt: str, schema: dict) -> dict:
 
 # ---------- Professor emails ----------
 
-def draft_professor_email(professor: dict, draft_type: str, details: str, settings: dict) -> dict:
+def draft_professor_email(professor: dict, draft_type: str, details: str, settings: dict,
+                          context: dict | None = None) -> dict:
+    """context (optional, from the syllabus): office_hours, class_times, about_item, nearby_items."""
     task = DRAFT_TYPES.get(draft_type, DRAFT_TYPES["custom"])
+    context = context or {}
+    extra = []
+    if context.get("about_item"):
+        extra.append(f"This email is about: {_describe_item(context['about_item'])}")
+    if draft_type == "office_hours" and context.get("office_hours"):
+        extra.append(f"The professor's office hours (from the syllabus): {context['office_hours']}. "
+                     "Suggest one of these times unless my details say otherwise.")
+    if draft_type in ("sick", "missing_class") and context.get("nearby_items"):
+        listed = "; ".join(_describe_item(i) for i in context["nearby_items"])
+        extra.append(f"Due or happening in this class around now: {listed}. Mention one only if it's "
+                     "affected by my absence (e.g. something due or an exam on the day I'll miss).")
+    if context.get("class_times") and draft_type in ("sick", "missing_class"):
+        extra.append(f"Class meets: {context['class_times']}")
+    extra_text = ("\n" + "\n".join(extra)) if extra else ""
+
     prompt = f"""Write this email.
 
 Task: {task}
@@ -188,10 +205,41 @@ Course: {professor['course']}
 Notes about this professor: {professor.get('notes') or '(none)'}
 
 About me: {_about_me(settings)}
-Extra details from me: {details.strip() or '(none)'}"""
+Today's date: {context.get('today', '')}
+Extra details from me: {details.strip() or '(none)'}{extra_text}"""
     draft = _call_claude(PROFESSOR_SYSTEM, prompt, EMAIL_SCHEMA)
     draft["body"] += "\n\n" + closing_for(settings)
     return draft
+
+
+def _describe_item(it: dict) -> str:
+    when = it.get("due_date") or it.get("date_text") or "no date given"
+    if it.get("due_time"):
+        when += f" at {it['due_time']}"
+    text = f"{it.get('kind', 'item')} “{it.get('title', '')}”, due/held {when}"
+    if it.get("topics"):
+        text += f" (covers: {it['topics']})"
+    return text
+
+
+def study_checklist(item: dict, professor: dict) -> list[str]:
+    """3-8 concrete study steps for an exam, based on what the syllabus says it covers."""
+    info = professor.get("course_info") or {}
+    prompt = f"""Make a short study checklist for this exam.
+
+Course: {professor.get('course')} {info.get('course_title', '')}
+Exam: {item.get('title')}
+Date: {item.get('due_date') or item.get('date_text') or 'unknown'}
+What it covers: {item.get('topics') or 'not stated'}
+Notes: {item.get('description') or '(none)'}
+Grading: {info.get('grading') or '(unknown)'}
+
+Give 3-8 short, concrete study tasks (e.g. "Redo chapter 4 practice problems"), in a sensible order.
+Only use topics listed above; if nothing is listed, give general but useful steps."""
+    schema = {"type": "object", "properties": {"checklist": {"type": "array", "items": {"type": "string"}}},
+              "required": ["checklist"], "additionalProperties": False}
+    system = "You help college students plan their studying. Be specific and brief."
+    return _call_claude(system, prompt, schema)["checklist"][:10]
 
 
 def rewrite_email(subject: str, body: str, style: str, professor: dict | None, settings: dict) -> dict:

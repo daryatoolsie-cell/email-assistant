@@ -249,7 +249,115 @@ def save_syllabus():
     return jsonify(professor_id=pid, items_saved=len(items))
 
 
+# ---------- Upcoming: exams & assignments ----------
+
+@app.get("/upcoming")
+def upcoming_page():
+    return render_template("upcoming.html", page="upcoming")
+
+
+@app.get("/api/items")
+def list_items():
+    return jsonify(db.all_items())
+
+
+def _item_updates(data, partial=True):
+    """Validate the fields you can change on an item. Returns a dict of column -> value."""
+    out = {}
+    if "kind" in data:
+        out["kind"] = data["kind"] if data["kind"] in db.ITEM_KINDS else "other"
+    if "title" in data:
+        out["title"] = (data["title"] or "").strip()[:200]
+        if not out["title"]:
+            raise ValueError("The title can't be empty.")
+    if "due_date" in data:
+        out["due_date"] = (data["due_date"] or "").strip()
+        if not DATE_RE.match(out["due_date"]):
+            raise ValueError("Dates look like 2027-03-14.")
+    if "due_time" in data:
+        out["due_time"] = (data["due_time"] or "").strip()
+        if not TIME_RE.match(out["due_time"]):
+            raise ValueError("Times look like 23:59.")
+    for f in ("topics", "description", "weight"):
+        if f in data:
+            out[f] = (data[f] or "")[:2000]
+    if "done" in data:
+        out["done"] = 1 if data["done"] else 0
+    if "checklist" in data:
+        out["checklist"] = json.dumps([{"text": str(c.get("text", ""))[:200], "done": bool(c.get("done"))}
+                                       for c in (data["checklist"] or []) if str(c.get("text", "")).strip()])
+    if not partial and "title" not in out:
+        raise ValueError("Give it a title.")
+    return out
+
+
+@app.post("/api/items")
+def add_item():
+    data = request.get_json(force=True)
+    if not db.row("SELECT id FROM professors WHERE id = ?", (data.get("professor_id"),)):
+        return jsonify(error="Pick a class."), 400
+    try:
+        f = _item_updates(data, partial=False)
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    f.setdefault("kind", "assignment")
+    cols = ["professor_id", "source", *f]
+    new_id = db.execute(f"INSERT INTO course_items ({', '.join(cols)}) VALUES ({', '.join('?' for _ in cols)})",
+                        (data["professor_id"], "manual", *f.values()))
+    return jsonify(db.get_item(new_id)), 201
+
+
+@app.patch("/api/items/<int:item_id>")
+def update_item(item_id):
+    if not db.get_item(item_id):
+        return jsonify(error="Not found."), 404
+    try:
+        f = _item_updates(request.get_json(force=True))
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    if f:
+        db.execute(f"UPDATE course_items SET {', '.join(f'{k} = ?' for k in f)} WHERE id = ?", (*f.values(), item_id))
+    return jsonify(db.get_item(item_id))
+
+
+@app.delete("/api/items/<int:item_id>")
+def delete_item(item_id):
+    db.execute("DELETE FROM course_items WHERE id = ?", (item_id,))
+    return "", 204
+
+
+@app.post("/api/items/<int:item_id>/checklist")
+def make_checklist(item_id):
+    """Ask Claude for a study checklist (exams without one, or to redo it)."""
+    item = db.get_item(item_id)
+    if not item:
+        return jsonify(error="Not found."), 404
+    prof = db.row("SELECT * FROM professors WHERE id = ?", (item["professor_id"],))
+    try:
+        steps = ai.study_checklist(item, _professor_json(prof))
+    except ai.DraftError as e:
+        return jsonify(error=str(e)), 400
+    checklist = json.dumps([{"text": t[:200], "done": False} for t in steps if t.strip()])
+    db.execute("UPDATE course_items SET checklist = ? WHERE id = ?", (checklist, item_id))
+    return jsonify(db.get_item(item_id))
+
+
 # ---------- Drafting ----------
+
+def _draft_context(professor, item_id=None):
+    """Class info from the syllabus that helps write a better email."""
+    from datetime import timedelta
+    today = date.today()
+    info = json.loads(professor.get("course_info") or "{}")
+    ctx = {"today": today.isoformat(), "office_hours": professor.get("office_hours") or "",
+           "class_times": info.get("class_times", "")}
+    items = [i for i in db.items_for(professor["id"]) if not i["done"]]
+    if item_id:
+        ctx["about_item"] = next((i for i in items if i["id"] == int(item_id)), None)
+    window = ((today - timedelta(days=1)).isoformat(), (today + timedelta(days=3)).isoformat())
+    ctx["nearby_items"] = [i for i in items if i["due_date"] and window[0] <= i["due_date"] <= window[1]]
+    return ctx
+
 
 @app.post("/api/draft")
 def make_draft():
@@ -264,7 +372,8 @@ def make_draft():
         return jsonify(error="For a Custom email, describe what you want in the details box."), 400
 
     try:
-        draft = ai.draft_professor_email(professor, draft_type, details, db.get_settings())
+        draft = ai.draft_professor_email(professor, draft_type, details, db.get_settings(),
+                                         _draft_context(professor, data.get("item_id")))
     except ai.DraftError as e:
         return jsonify(error=str(e)), 502
 

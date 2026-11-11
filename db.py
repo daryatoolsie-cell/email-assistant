@@ -203,3 +203,22 @@ def replace_syllabus_items(professor_id, items):
                 f"VALUES (?, {', '.join('?' for _ in ITEM_FIELDS)}, 'syllabus')",
                 (professor_id, *(it.get(f, "") for f in ITEM_FIELDS)),
             )
+
+
+def all_items():
+    """Every class item with its professor's name and course (for the Upcoming page)."""
+    import json
+    items = rows("SELECT i.*, p.course AS course, p.name AS professor_name FROM course_items i "
+                 "JOIN professors p ON p.id = i.professor_id "
+                 "ORDER BY i.due_date = '', i.due_date, i.due_time, i.id")
+    for it in items:
+        it["checklist"] = json.loads(it.get("checklist") or "[]")
+    return items
+
+
+def get_item(item_id):
+    import json
+    it = row("SELECT * FROM course_items WHERE id = ?", (item_id,))
+    if it:
+        it["checklist"] = json.loads(it.get("checklist") or "[]")
+    return it

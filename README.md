@@ -7,6 +7,7 @@ A personal web app that drafts emails for you with Claude. It runs on your own M
 - ✅ Phase 2: Settings page (name, school, sign-off, signature) and Regenerate / Make Shorter / Make More Formal / Make More Casual
 - ✅ Phase 3: Work Inbox: reads unread Gmail and saves AI-written replies as **Gmail drafts** (never sends)
 - ✅ Syllabus upload: auto-fills professors, office hours, exams (with topics) and assignments
+- ✅ Upcoming page: all exams & assignments, countdowns, check-offs, study checklists, one-click emails
 - ✅ Themes: 8 built-in themes (including Weed 🌿 with stickers) plus your own (Settings → Appearance)
 - ✅ Downloadable Mac app that friends can install from a GitHub release page (see "Mac app & sharing")
 
@@ -198,6 +199,19 @@ Claude reads it (30–90 seconds, about 10–20¢) and fills in a **review scree
 Check everything, then click **Save**. Items marked **⚠️ needs a date** had no exact date in the syllabus (e.g. "Week 12"). Add the date if you know it. Untick **Keep** to skip an item, or use **+ Add an item**.
 
 Nothing is saved until you click Save. Uploading a newer syllabus for the same class (same professor email or course) updates it and replaces its syllabus items. When you pick a professor, **📚 Class info & upcoming** shows everything from their syllabus.
+
+---
+
+## Upcoming: exams & assignments
+
+The **Upcoming** page lists every exam, quiz and assignment from all your classes, grouped into **Overdue, This week, Next week, Later** and **No date yet**, with a countdown (red = within 2 days). At the top, a summary says what's due this week, and you can filter by class.
+
+- ☑️ **Tick the box** when something's done. Turn on **Show completed** to see finished items.
+- 📝 **Exams** show **what's on them** and a **study checklist** with a progress bar. No checklist yet? Click **✨ Make a study checklist**.
+- ✉️ **One-click emails:** **Ask for an extension**, **Ask a question** or **Office hours to prepare** opens the Professors page and writes the email about that exact item.
+- **Edit** fixes a title, date or notes. **+ Add item** adds something that wasn't in the syllabus.
+
+The email buttons also use your syllabus info: on the Professors page, the **About** menu lets you pick which assignment or exam an email is about. **Office Hours Meeting** suggests the professor's real office hours, and **Sick / Missing Class** mentions anything due that day.
 
 ---
 

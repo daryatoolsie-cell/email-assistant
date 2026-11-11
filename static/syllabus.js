@@ -163,13 +163,22 @@ function formatDue(it) {
 async function showClassInfo(prof) {
   const box = $("#class-info");
   const info = prof.course_info || {};
+  $("#about-wrap").classList.add("hidden");
+  $("#about-item").innerHTML = "";
   if (!prof.item_count && !prof.office_hours && !Object.values(info).some(Boolean)) {
     box.classList.add("hidden");
     return;
   }
   const items = await api("GET", `/api/professors/${prof.id}/items`);
   const today = localToday();
-  const upcoming = items.filter((it) => !it.due_date || it.due_date >= today);
+  const upcoming = items.filter((it) => !it.done && (!it.due_date || it.due_date >= today));
+
+  // "About" picker for the email buttons
+  if (upcoming.length) {
+    $("#about-item").innerHTML = `<option value="">Nothing specific</option>` + upcoming.map((it) =>
+      `<option value="${it.id}">${KIND_LABELS[it.kind] || ""} ${esc(it.title)}${it.due_date ? " · " + esc(it.due_date) : ""}</option>`).join("");
+    $("#about-wrap").classList.remove("hidden");
+  }
   const facts = [
     ["Office hours", prof.office_hours], ["Class", info.class_times], ["Where", info.location],
     ["TAs", info.teaching_assistants], ["Grading", info.grading], ["Policies", info.policies],

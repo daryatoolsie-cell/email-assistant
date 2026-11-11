@@ -168,3 +168,24 @@ header, main { position: relative; z-index: 1; }
 #class-info .fact { font-size: 14px; margin-top: 6px; white-space: pre-wrap; }
 .ci-items { margin-top: 10px; display: grid; gap: 8px; }
 .ci-item { border-top: 1px solid var(--border); padding-top: 8px; }
+
+/* Upcoming page */
+.up-filters { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.up-filters select { width: auto; margin: 0; }
+.up-item { display: flex; gap: 12px; border-top: 1px solid var(--border); padding: 12px 0; }
+.up-item:first-of-type { border-top: none; }
+.up-item.is-done { opacity: .6; }
+.up-check input { width: 20px; height: 20px; margin-top: 2px; cursor: pointer; accent-color: var(--accent); }
+.up-body { flex: 1; min-width: 0; }
+.up-title { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.up-topics { margin-top: 4px; }
+.up-actions { margin-top: 8px; align-items: center; }
+.struck { text-decoration: line-through; }
+.checklist { margin-top: 10px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; }
+.checklist-head { display: flex; gap: 8px; align-items: baseline; }
+.checklist-head .link { margin-left: auto; }
+.progress { height: 6px; background: var(--border); border-radius: 99px; margin: 8px 0 4px; overflow: hidden; }
+.progress span { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .3s; }
+.check-row { font-size: 14px; color: var(--text); margin: 6px 0; align-items: flex-start; }
+.check-row input { accent-color: var(--accent); margin-top: 3px; }
+.up-edit { margin-top: 8px; }

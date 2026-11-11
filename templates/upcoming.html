@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Upcoming</h2>
+        <button id="up-add-btn" class="secondary">+ Add item</button>
+      </div>
+      <p id="up-summary" class="muted" style="margin:0"></p>
+      <div class="up-filters">
+        <select id="up-class"></select>
+        <label class="toggle"><input type="checkbox" id="up-show-done"> Show completed</label>
+      </div>
+
+      <form id="up-add" class="hidden">
+        <div class="grid">
+          <label>Class <select name="professor_id" required></select></label>
+          <label>Type
+            <select name="kind">
+              <option value="assignment">📄 Assignment</option><option value="exam">📝 Exam</option>
+              <option value="quiz">✏️ Quiz</option><option value="project">🧩 Project</option>
+              <option value="presentation">🎤 Presentation</option><option value="other">📌 Other</option>
+            </select>
+          </label>
+          <label>Title <input name="title" required placeholder="e.g. Lab report 3"></label>
+          <div class="grid" style="gap:0 10px">
+            <label>Date <input type="date" name="due_date"></label>
+            <label>Time <input type="time" name="due_time"></label>
+          </div>
+        </div>
+        <label>What's on it / notes (optional) <textarea name="topics" rows="2"></textarea></label>
+        <div class="row">
+          <button type="submit">Add</button>
+          <button type="button" class="secondary" id="up-add-cancel">Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <div id="up-groups"></div>
+    <p id="up-empty" class="panel muted hidden">
+      Nothing here yet. Add a class with <a href="/">📄 Add from syllabus</a> on the Professors page, or click “+ Add item”.
+    </p>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='upcoming.js') }}"></script>{% endblock %}

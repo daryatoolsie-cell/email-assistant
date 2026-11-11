@@ -77,8 +77,8 @@ function selectProfessor(id) {
   $("#status").textContent = "Pick the kind of email you need.";
   $("#status").className = "muted";
   document.querySelectorAll(".type-btn").forEach((b) => b.classList.remove("active"));
-  if (typeof showClassInfo === "function") showClassInfo(selected);
   $("#draft-panel").scrollIntoView({ behavior: "smooth" });
+  return typeof showClassInfo === "function" ? showClassInfo(selected) : Promise.resolve();
 }
 
 // ---------- drafting ----------
@@ -114,6 +114,7 @@ async function generate(type, btn, regenerate = false) {
   try {
     const d = await api("POST", "/api/draft", {
       professor_id: selected.id, draft_type: type, details: $("#details").value,
+      item_id: $("#about-item").value || null,
       draft_id: regenerate ? currentDraftId : null,
     });
     currentDraftId = d.id;
@@ -210,5 +211,17 @@ async function loadHistory() {
   };
 }
 
-loadProfessors();
+// Opened from the Upcoming page ("Ask for an extension" etc.): pick the class, item and email type.
+async function startFromLink() {
+  const q = new URLSearchParams(location.search);
+  const prof = Number(q.get("prof"));
+  if (!prof || !professors.some((p) => p.id === prof)) return;
+  await selectProfessor(prof);
+  if (q.get("item")) $("#about-item").value = q.get("item");
+  history.replaceState(null, "", "/");
+  const btn = document.querySelector(`.type-btn[data-type="${q.get("type")}"]`);
+  if (btn) generate(btn.dataset.type, btn);
+}
+
+loadProfessors().then(startFromLink);
 loadHistory();
