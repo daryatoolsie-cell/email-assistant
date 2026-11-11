@@ -6,6 +6,7 @@ A personal web app that drafts emails for you with Claude. It runs on your own M
 - ✅ Phase 1: professors, quick-draft buttons, copy / open in Outlook / open in Mail, draft history
 - ✅ Phase 2: Settings page (name, school, sign-off, signature) and Regenerate / Make Shorter / Make More Formal / Make More Casual
 - ✅ Phase 3: Work Inbox: reads unread Gmail and saves AI-written replies as **Gmail drafts** (never sends)
+- ✅ Syllabus upload: auto-fills professors, office hours, exams (with topics) and assignments
 - ✅ Themes: 8 built-in themes (including Weed 🌿 with stickers) plus your own (Settings → Appearance)
 - ✅ Downloadable Mac app that friends can install from a GitHub release page (see "Mac app & sharing")
 
@@ -185,6 +186,20 @@ Good to know:
 - Each email is processed **once**. Clicking Check inbox again only picks up emails that are new since last time.
 - For a skipped or "no reply needed" email, **✍️ Draft a reply anyway** writes one.
 - Cost: about 1¢ per email that gets a reply (with the default model). Skipped emails cost nothing.
+
+## Add a class from its syllabus
+
+On **Professors**, click **📄 Add from syllabus** and choose the syllabus PDF (download it from Brightspace first), or a photo/screenshot of it. Word files: open them and use **File → Save as PDF**.
+
+Claude reads it (30–90 seconds, about 10–20¢) and fills in a **review screen**:
+- the professor's name, email and course, plus office hours, class times, TAs, grading and key policies,
+- every **exam, quiz, assignment and project** with its date, and for exams **what's on it** (from the syllabus, or worked out from the schedule) plus a study checklist.
+
+Check everything, then click **Save**. Items marked **⚠️ needs a date** had no exact date in the syllabus (e.g. "Week 12"). Add the date if you know it. Untick **Keep** to skip an item, or use **+ Add an item**.
+
+Nothing is saved until you click Save. Uploading a newer syllabus for the same class (same professor email or course) updates it and replaces its syllabus items. When you pick a professor, **📚 Class info & upcoming** shows everything from their syllabus.
+
+---
 
 ## Themes
 

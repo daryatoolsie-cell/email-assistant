@@ -153,3 +153,18 @@ header, main { position: relative; z-index: 1; }
 .sticker.sparkle, .sticker.peace { aspect-ratio: 1; }
 .sticker.peace { fill: none; }
 .theme-card .swatch .mini-leaf { width: 26px; height: 20px; fill: #3fa535; margin-left: auto; align-self: flex-start; }
+
+/* Syllabus review + class info */
+.sr-details { margin: 8px 0; }
+.sr-details summary, #class-info summary { cursor: pointer; color: var(--accent); }
+.sr-item { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-top: 10px; background: var(--bg); }
+.sr-item.excluded { opacity: .5; }
+.sr-item-top { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.sr-item-top select { width: auto; margin: 0; padding: 5px 8px; }
+.sr-item-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0 10px; }
+@media (max-width: 600px) { .sr-item-grid { grid-template-columns: 1fr; } }
+.sr-item label { margin: 6px 0; }
+#class-info { margin: 0 0 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
+#class-info .fact { font-size: 14px; margin-top: 6px; white-space: pre-wrap; }
+.ci-items { margin-top: 10px; display: grid; gap: 8px; }
+.ci-item { border-top: 1px solid var(--border); padding-top: 8px; }

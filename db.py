@@ -66,10 +66,35 @@ def init_db():
             );
             """
         )
-        # Added later: themes can show stickers. Add the column to older databases.
-        columns = [r[1] for r in conn.execute("PRAGMA table_info(themes)")]
-        if "stickers" not in columns:
-            conn.execute("ALTER TABLE themes ADD COLUMN stickers TEXT DEFAULT ''")
+        conn.executescript(
+            """
+            -- Exams, assignments, quizzes... for each class (from a syllabus, Brightspace, or added by hand).
+            CREATE TABLE IF NOT EXISTS course_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                professor_id INTEGER NOT NULL,
+                kind TEXT NOT NULL,            -- exam | quiz | assignment | project | presentation | other
+                title TEXT NOT NULL,
+                due_date TEXT DEFAULT '',      -- YYYY-MM-DD, or '' if the syllabus didn't give one
+                due_time TEXT DEFAULT '',      -- HH:MM (24h), or ''
+                date_text TEXT DEFAULT '',     -- the syllabus's own wording, e.g. "Week 7"
+                topics TEXT DEFAULT '',        -- what's covered (exams)
+                description TEXT DEFAULT '',
+                weight TEXT DEFAULT '',        -- e.g. "20%"
+                checklist TEXT DEFAULT '[]',   -- exams: JSON list of {"text": ..., "done": false}
+                done INTEGER DEFAULT 0,
+                source TEXT DEFAULT 'syllabus'
+            );
+            """
+        )
+        # Columns added after the first version: add them to older databases.
+        _add_column(conn, "themes", "stickers", "TEXT DEFAULT ''")
+        _add_column(conn, "professors", "office_hours", "TEXT DEFAULT ''")
+        _add_column(conn, "professors", "course_info", "TEXT DEFAULT '{}'")  # JSON: term, times, grading...
+
+
+def _add_column(conn, table, column, decl):
+    if column not in [r[1] for r in conn.execute(f"PRAGMA table_info({table})")]:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
 
 
 # ---------- Settings ----------
@@ -148,3 +173,33 @@ def custom_themes():
     return {f"custom-{r['id']}": {"id": f"custom-{r['id']}", "name": r["name"], "colors": json.loads(r["colors"]),
                                   "stickers": r.get("stickers") or ""}
             for r in rows("SELECT * FROM themes ORDER BY id")}
+
+
+# ---------- Class items (exams, assignments...) ----------
+
+ITEM_KINDS = ("exam", "quiz", "assignment", "project", "presentation", "other")
+ITEM_FIELDS = ("kind", "title", "due_date", "due_time", "date_text", "topics", "description", "weight", "checklist")
+
+
+def items_for(professor_id):
+    # Dated items first (soonest first), then undated ones.
+    import json
+    items = rows("SELECT * FROM course_items WHERE professor_id = ? "
+                 "ORDER BY due_date = '', due_date, due_time, id", (professor_id,))
+    for it in items:
+        it["checklist"] = json.loads(it.get("checklist") or "[]")
+    return items
+
+
+def replace_syllabus_items(professor_id, items):
+    """Re-importing a syllabus replaces that class's syllabus items (hand-added ones are kept)."""
+    import json
+    items = [{**it, "checklist": json.dumps(it.get("checklist") or [])} for it in items]
+    with connect() as conn:
+        conn.execute("DELETE FROM course_items WHERE professor_id = ? AND source = 'syllabus'", (professor_id,))
+        for it in items:
+            conn.execute(
+                f"INSERT INTO course_items (professor_id, {', '.join(ITEM_FIELDS)}, source) "
+                f"VALUES (?, {', '.join('?' for _ in ITEM_FIELDS)}, 'syllabus')",
+                (professor_id, *(it.get(f, "") for f in ITEM_FIELDS)),
+            )

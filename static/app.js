@@ -17,6 +17,7 @@ async function loadProfessors() {
       <div class="title">Email ${esc(p.course)} Professor</div>
       <div class="sub">${esc(p.name)} · ${esc(p.email)}</div>
       ${p.notes ? `<div class="sub">📝 ${esc(p.notes)}</div>` : ""}
+      ${p.item_count ? `<div class="sub">📚 ${p.item_count} exams &amp; assignments</div>` : ""}
       <div class="actions">
         <button class="link" data-edit="${p.id}">Edit</button>
         <button class="link danger" data-delete="${p.id}">Delete</button>
@@ -76,6 +77,7 @@ function selectProfessor(id) {
   $("#status").textContent = "Pick the kind of email you need.";
   $("#status").className = "muted";
   document.querySelectorAll(".type-btn").forEach((b) => b.classList.remove("active"));
+  if (typeof showClassInfo === "function") showClassInfo(selected);
   $("#draft-panel").scrollIntoView({ behavior: "smooth" });
 }
 

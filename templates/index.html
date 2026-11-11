@@ -8,8 +8,13 @@
     <section class="panel">
       <div class="panel-head">
         <h2>Your professors</h2>
-        <button id="show-add" class="secondary">+ Add professor</button>
+        <div class="row" style="margin:0">
+          <button id="syllabus-btn">📄 Add from syllabus</button>
+          <button id="show-add" class="secondary">+ Add by hand</button>
+        </div>
       </div>
+      <input type="file" id="syllabus-file" class="hidden" accept="application/pdf,.pdf,image/png,image/jpeg,.jpg,.jpeg,.png">
+      <p id="syllabus-status" class="muted hidden"></p>
 
       <form id="prof-form" class="hidden">
         <input type="hidden" name="id">
@@ -26,12 +31,58 @@
       </form>
 
       <div id="prof-list" class="cards"></div>
-      <p id="prof-empty" class="muted hidden">No professors yet. Click “+ Add professor” to get started.</p>
+      <p id="prof-empty" class="muted hidden">No professors yet. Click “📄 Add from syllabus” (fastest) or “+ Add by hand”.</p>
+    </section>
+
+    <!-- Syllabus review (step 2 of adding from a syllabus) -->
+    <section class="panel hidden" id="syllabus-review">
+      <h2>Review syllabus: <span id="sr-filename"></span></h2>
+      <p class="muted small">Claude filled this in from the syllabus. Check it, fix anything that's wrong, then click <strong>Save</strong>.
+        Items marked ⚠️ have no exact date in the syllabus. Add one if you know it.</p>
+
+      <label>Save to
+        <select id="sr-target"></select>
+      </label>
+      <div class="grid">
+        <label>Professor name <input id="sr-name"></label>
+        <label>Email <input id="sr-email" type="email" placeholder="Not in the syllabus. Please add it"></label>
+        <label>Course (short label) <input id="sr-course"></label>
+        <label>Notes (optional) <input id="sr-notes" placeholder="e.g. Prefers Dr. Smith"></label>
+      </div>
+
+      <details class="sr-details">
+        <summary>Class details (office hours, grading, policies…)</summary>
+        <div class="grid">
+          <label>Office hours <textarea id="sr-office_hours" rows="2"></textarea></label>
+          <label>Class times <textarea id="sr-class_times" rows="2"></textarea></label>
+          <label>Course title <input id="sr-course_title"></label>
+          <label>Term <input id="sr-term"></label>
+          <label>Location <input id="sr-location"></label>
+          <label>TAs <input id="sr-teaching_assistants"></label>
+          <label>Grading <textarea id="sr-grading" rows="3"></textarea></label>
+          <label>Key policies <textarea id="sr-policies" rows="3"></textarea></label>
+        </div>
+      </details>
+
+      <h2 class="spaced">Exams &amp; assignments <span class="muted small" id="sr-count"></span></h2>
+      <div id="sr-items"></div>
+      <button type="button" class="link" id="sr-add-item">+ Add an item</button>
+
+      <p id="sr-error" class="error hidden"></p>
+      <div class="row">
+        <button id="sr-save">Save</button>
+        <button class="secondary" id="sr-cancel">Cancel</button>
+      </div>
     </section>
 
     <!-- Drafting -->
     <section class="panel hidden" id="draft-panel">
       <h2 id="draft-title"></h2>
+
+      <details id="class-info" class="hidden">
+        <summary>📚 Class info &amp; upcoming</summary>
+        <div id="class-info-body"></div>
+      </details>
 
       <div class="type-buttons">
         {% for key, label in button_labels.items() %}
@@ -72,4 +123,7 @@
       <p id="history-empty" class="muted hidden">Drafts you generate will show up here.</p>
     </section>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='app.js') }}"></script>{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+<script src="{{ url_for('static', filename='syllabus.js') }}"></script>
+{% endblock %}

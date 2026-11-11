@@ -8,7 +8,9 @@ from dotenv import load_dotenv
 load_dotenv()  # loads ANTHROPIC_API_KEY from .env if you have one
 
 import json  # noqa: E402
+import re  # noqa: E402
 import secrets  # noqa: E402
+from datetime import date  # noqa: E402
 from concurrent.futures import ThreadPoolExecutor  # noqa: E402
 
 from flask import Flask, jsonify, redirect, render_template, request  # noqa: E402
@@ -21,7 +23,7 @@ import themes  # noqa: E402
 
 app = Flask(__name__, template_folder=str(paths.RESOURCE_DIR / "templates"),
             static_folder=str(paths.RESOURCE_DIR / "static"))
-app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024  # uploads (credentials.json) are tiny
+app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # largest upload: a syllabus PDF
 db.init_db()
 
 # A new random password every time the app starts. Pages include it and send it with every
@@ -112,9 +114,23 @@ def save_settings():
 
 # ---------- Professors ----------
 
+def _professor_json(p):
+    p = dict(p)
+    p["course_info"] = json.loads(p.get("course_info") or "{}")
+    return p
+
+
 @app.get("/api/professors")
 def list_professors():
-    return jsonify(db.rows("SELECT * FROM professors ORDER BY course"))
+    profs = db.rows(
+        "SELECT p.*, (SELECT COUNT(*) FROM course_items i WHERE i.professor_id = p.id) AS item_count "
+        "FROM professors p ORDER BY course")
+    return jsonify([_professor_json(p) for p in profs])
+
+
+@app.get("/api/professors/<int:pid>/items")
+def professor_items(pid):
+    return jsonify(db.items_for(pid))
 
 
 def _professor_fields():
@@ -150,8 +166,87 @@ def update_professor(pid):
 
 @app.delete("/api/professors/<int:pid>")
 def delete_professor(pid):
+    db.execute("DELETE FROM course_items WHERE professor_id = ?", (pid,))
     db.execute("DELETE FROM professors WHERE id = ?", (pid,))
     return "", 204
+
+
+# ---------- Syllabus upload ----------
+
+SYLLABUS_TYPES = {b"%PDF": "application/pdf", b"\x89PNG": "image/png", b"\xff\xd8\xff": "image/jpeg"}
+DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})?$")
+TIME_RE = re.compile(r"^(\d{2}:\d{2})?$")
+INFO_FIELDS = ("course_title", "term", "class_times", "location", "teaching_assistants", "grading", "policies")
+
+
+@app.post("/api/syllabus/read")
+def read_syllabus():
+    """Step 1: Claude reads the file. Nothing is saved until you review it."""
+    upload = request.files.get("file")
+    if not upload:
+        return jsonify(error="Choose a syllabus file (PDF, or a photo/screenshot)."), 400
+    content = upload.read()
+    media_type = next((t for magic, t in SYLLABUS_TYPES.items() if content.startswith(magic)), None)
+    if not media_type:
+        return jsonify(error="That file type isn't supported. Use a PDF, or a PNG/JPG photo of the syllabus. "
+                             "(For a Word file: open it and choose File → Save as PDF.)"), 400
+    try:
+        extracted = ai.read_syllabus(content, media_type, date.today().isoformat())
+    except ai.DraftError as e:
+        return jsonify(error=str(e)), 400
+
+    # Is this a class you already added? Match by email, then by course label.
+    match = None
+    email = extracted.get("professor_email", "").strip().lower()
+    course = extracted.get("course", "").strip().lower()
+    for p in db.rows("SELECT * FROM professors"):
+        if (email and p["email"].lower() == email) or (course and p["course"].lower() == course):
+            match = p["id"]
+            break
+    return jsonify(extracted=extracted, match_id=match, filename=upload.filename)
+
+
+def _clean_item(it):
+    kind = it.get("kind") if it.get("kind") in db.ITEM_KINDS else "other"
+    title = (it.get("title") or "").strip()[:200]
+    due_date, due_time = (it.get("date") or "").strip(), (it.get("time") or "").strip()
+    if not title:
+        raise ValueError("Every item needs a title.")
+    if not DATE_RE.match(due_date) or not TIME_RE.match(due_time):
+        raise ValueError(f"“{title}” has a date or time in the wrong format.")
+    checklist = [{"text": str(t)[:200], "done": False} for t in (it.get("study_checklist") or []) if str(t).strip()]
+    return {"kind": kind, "title": title, "due_date": due_date, "due_time": due_time,
+            "date_text": (it.get("date_text") or "")[:200], "topics": (it.get("topics") or "")[:2000],
+            "description": (it.get("description") or "")[:2000], "weight": (it.get("weight") or "")[:50],
+            "checklist": checklist}
+
+
+@app.post("/api/syllabus/save")
+def save_syllabus():
+    """Step 2: save what you reviewed: the professor card, class details, and exams/assignments."""
+    data = request.get_json(force=True)
+    prof = {k: (data.get("professor", {}).get(k) or "").strip() for k in ("name", "email", "course", "notes")}
+    missing = [k for k in ("name", "email", "course") if not prof[k]]
+    if missing:
+        return jsonify(error=f"Please fill in the professor's {', '.join(missing)}."), 400
+    try:
+        items = [_clean_item(it) for it in data.get("items", []) if it.get("include", True)]
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    info = {k: (data.get("info", {}).get(k) or "").strip() for k in INFO_FIELDS}
+    office_hours = (data.get("office_hours") or "").strip()
+
+    pid = data.get("professor_id")
+    if pid and db.row("SELECT id FROM professors WHERE id = ?", (pid,)):
+        db.execute("UPDATE professors SET name = ?, email = ?, course = ?, notes = ?, office_hours = ?, "
+                   "course_info = ? WHERE id = ?",
+                   (prof["name"], prof["email"], prof["course"], prof["notes"], office_hours, json.dumps(info), pid))
+    else:
+        pid = db.execute("INSERT INTO professors (name, email, course, notes, office_hours, course_info) "
+                         "VALUES (?, ?, ?, ?, ?, ?)",
+                         (prof["name"], prof["email"], prof["course"], prof["notes"], office_hours, json.dumps(info)))
+    db.replace_syllabus_items(pid, items)
+    return jsonify(professor_id=pid, items_saved=len(items))
 
 
 # ---------- Drafting ----------
