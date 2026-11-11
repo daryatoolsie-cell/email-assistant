@@ -216,14 +216,8 @@ GitHub builds the Mac app for you on its own Macs, for free:
 
 1. Put this project in a GitHub repository (Claude can set this up for you).
 2. Every push to `main` builds and tests the app. Go to the repo's **Actions** tab, open the latest run, and download **Email-Assistant-Mac** under *Artifacts* to try it.
-3. To publish a version for friends, create a version tag:
-   ```bash
-   git tag v1.0.0
-   ```
-   ```bash
-   git push origin v1.0.0
-   ```
-   A few minutes later the **Releases** page has **Email-Assistant-Mac.zip** with install instructions (from `INSTALL.md`). Share that page's link.
+3. To publish a new version for friends, change the number in the `VERSION` file (e.g. `1.0.0` to `1.0.1`) and push. You can also do this on github.com: open `VERSION`, click the ✏️ pencil, change the number, and click **Commit changes**.
+   A few minutes later the **Releases** page has a new **Email-Assistant-Mac.zip** with install instructions (from `INSTALL.md`). Share that page's link: `https://github.com/<your-username>/email-assistant/releases/latest`
 
 Good to know:
 - **The download is for Macs with Apple chips (M1 and newer).** Intel Macs aren't supported.
